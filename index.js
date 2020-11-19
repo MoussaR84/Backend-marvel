@@ -1,5 +1,6 @@
 const express = require("express");
 const axios = require("axios");
+const cors = require("cors");
 const md5 = require("md5");
 const uid2 = require("uid2");
 require("dotenv").config();
@@ -11,6 +12,8 @@ const app = express();
 
 const publicKey = process.env.PUBLIC_KEY;
 const privateKey = process.env.PRIVATE_KEY;
+
+//LES ROUTES
 
 app.get("/comics", async (req, res) => {
   try {
