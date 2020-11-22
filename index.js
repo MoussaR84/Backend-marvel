@@ -6,43 +6,101 @@ const uid2 = require("uid2");
 require("dotenv").config();
 
 const app = express();
+app.use(cors());
 
 // http://gateway.marvel.com/v1/public/comics?ts=1&apikey=1234&hash=ffd275c5130566a2916217b101f26150
 // md5(ts+privateKey+publicKey)
 
+const date = new Date();
+const timestamp = date.getTime() / 1000;
+const ts = Math.floor(timestamp);
+
+// Creation of Hash using Ts, private Marvel key and public Marvel key
 const publicKey = process.env.PUBLIC_KEY;
-const privateKey = process.env.PRIVATE_KEY;
+const hash = md5(ts + process.env.PRIVATE_KEY + publicKey).toString();
 
 //LES ROUTES
 
 app.get("/comics", async (req, res) => {
-  try {
-    // Genérer le ts
-    const ts = uid2(8);
-    const hash = md5(ts + privateKey + publicKey);
+  const { title, page } = req.query;
+  let search;
+  if (title !== "") {
+    search = `&titleStartsWith=${title}`;
+  }
 
+  const offset = page * 100 - 100;
+
+  try {
     const response = await axios.get(
-      `http://gateway.marvel.com/v1/public/comics?ts=${ts}&apikey=${publicKey}&hash=${hash}`
+      `https://gateway.marvel.com/v1/public/comics?orderBy=title&ts=${ts}&apikey=${publicKey}&hash=${hash}&limit=100&offset=${offset}` +
+        search
     );
-    res.json(response.data.data);
+
+    res.status(200).json(response.data);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({
+      message: error.message,
+    });
   }
 });
-// on get sur une autre route
 
-app.get("/characters", async (req, res) => {
+app.get("/character/:id/comics", async (req, res) => {
   try {
-    // Genérer le ts
-    const ts = uid2(8);
-    const hash = md5(ts + privateKey + publicKey);
-
     const response = await axios.get(
-      `http://gateway.marvel.com/v1/public/characters?ts=${ts}&apikey=${publicKey}&hash=${hash}`
+      `https://gateway.marvel.com/v1/public/characters/${req.params.id}/comics?ts=${ts}&apikey=${publicKey}&hash=${hash}`
     );
-    res.json(response.data.data);
+
+    res.status(200).json(response.data);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({
+      message: error.message,
+    });
+  }
+});
+
+// LES PERSONNAGES CHARACTERS
+
+app.get("/character/:id", async (req, res) => {
+  try {
+    const response = await axios.get(
+      `https://gateway.marvel.com/v1/public/characters/${req.params.id}?ts=${ts}&apikey=${publiclKey}&hash=${hash}`
+    );
+
+    res.status(200).json(response.data);
+  } catch (error) {
+    res.status(400).json({
+      message: error.message,
+    });
+  }
+});
+//LA HOME
+
+app.get("/", async (req, res) => {
+  const page = req.query.page;
+  const name = req.query.name;
+
+  // prendre en compte les perso avec etoiles
+
+  let search;
+  let offset;
+  if (name !== "") {
+    search = `&nameStartsWith=${name}`;
+    offset = 0;
+  } else {
+    offset = page * 100 - 100;
+  }
+
+  try {
+    const response = await axios.get(
+      `https://gateway.marvel.com/v1/public/characters?orderBy=name&ts=${ts}&apikey=${publicKey}&hash=${hash}&limit=100&offset=${offset}` +
+        search
+    );
+
+    res.status(200).json(response.data);
+  } catch (error) {
+    res.status(400).json({
+      message: error.message,
+    });
   }
 });
 
