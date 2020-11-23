@@ -22,7 +22,7 @@ const hash = md5(ts + process.env.PRIVATE_KEY + publicKey).toString();
 //LES ROUTES
 
 app.get("/comics", async (req, res) => {
-  const { title, page } = req.query;
+  const page = req.query.page;
   let search;
   if (title !== "") {
     search = `&titleStartsWith=${title}`;
